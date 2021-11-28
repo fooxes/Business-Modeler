@@ -1,4 +1,5 @@
 <html>
+
 <head>
     <title>Business Modeler</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -8,82 +9,152 @@
         html {
             font-family: "Roboto-Mono", monospace;
         }
+
         td,
         th {
             text-align: right;
             padding: 10px;
             background-color: white;
         }
+
         td:first-of-type,
         th:first-of-type {
             text-align: left;
             position: sticky;
-            left:0;
+            left: 0;
         }
-        th:first-of-type, th:last-of-type {
+
+        th:first-of-type,
+        th:last-of-type {
             z-index: 1;
         }
+
         th {
-            position:sticky;
-            top:0;
+            position: sticky;
+            top: 0;
         }
-        td:last-child, th:last-child {
+
+        td:last-child,
+        th:last-child {
             position: sticky;
             right: 0;
         }
-        
+
         tr:nth-of-type(2n) td {
             background-color: #f0f0f0;
         }
     </style>
 </head>
+
 <body>
     <script>
-        
+
         const model = [
             {
                 id: "follower",
-                name: "Follower (LinkedIn)",
+                name: "Follower LinkedIn",
                 startValue: 100,
                 formula: "{priorMonth}+100"
             },
             {
-                id: "section",
-                name: "Traffic"
+                id: "section_traffic",
+                name: "TRAFFIC"
             },
             {
-                id: "traffic",
-                name: "Suchvolumen",
+                id: "search_volumne",
+                name: "Search volumne",
                 startValue: 17520
             },
             {
-                id: "seoCvrGrowth",
+                id: "section_organic_traffic",
+                name: "Organic"
+            },
+            {
+                id: "organic_traffic_cvr_growth",
                 name: "CVR Growth",
                 startValue: 0.005,
                 type: "percentage"
             },
             {
-                id: "seoCvrMax",
-                name: "CVR Max",
+                id: "organic_traffic_cvr_max",
+                name: "Max. CVR",
                 startValue: 0.05,
                 type: "percentage"
             },
             {
-                id: "visits",
+                id: "organic_traffic_visits",
                 name: "Visits",
-                startValue: 0,
-                offset: 8,
-                formula: "{priorMonth}+({traffic}*{seoCvrMax}-{priorMonth})*{seoCvrGrowth}/{seoCvrMax}"
+                formula: "{priorMonth}+({search_volumne}*{organic_traffic_cvr_max}-{priorMonth})*{organic_traffic_cvr_growth}/{organic_traffic_cvr_max}",
+                offset: 8
+            },
+            {
+                id: "organic_traffic_cvr",
+                name: "CVR",
+                formula: "{organic_traffic_visits}/{search_volumne}",
+                type: "percentage"
+            },
+            {
+                id: "section_google_ads",
+                name: "Google Ads"
+            },
+            {
+                id: "google_ads_cvr",
+                name: "CVR",
+                startValue: 0.05,
+                type: "percentage"
+            },
+            {
+                id: "google_ads_visits",
+                name: "Visits",
+                formula: "{search_volumne}*{google_ads_cvr}"
+            },
+            {
+                id: "section_retargeting",
+                name: "Retargeting"
+            },
+            {
+                id: "retargeting_cvr",
+                name: "CVR",
+                startValue: 0.05,
+                type: "percentage"
+            },
+            {
+                id: "retargeting_visits",
+                name: "Visits",
+                formula: "{search_volumne}*{retargeting_cvr}"
+            },
+            {
+                id: "section_social",
+                name: "Social"
+            },
+            {
+                id: "social_cvr",
+                name: "CVR",
+                startValue: 0.05,
+                type: "percentage"
+            },
+            {
+                id: "social_visits",
+                name: "Visits",
+                formula: "{search_volumne}*{social_cvr}"
+            },
+            {
+                id: "visits_total",
+                name: "TOTAL",
+                formula: "{organic_traffic_visits}+{google_ads_visits}+{retargeting_visits}+{social_visits}"
             }
         ]
+
+        // Calculating 
+
         const results = [{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}];
         for (let lineNumber = 0; lineNumber < model.length; lineNumber++) {
             const lineItem = model[lineNumber];
             for (let monthIndex = 0; monthIndex < results.length; monthIndex++) {
                 const month = results[monthIndex];
-                if (lineItem.startValue != undefined) { // Sections do not have a startvalue
+                if (lineItem.startValue != undefined || lineItem.formula != undefined) { // Sections do not have a startvalue or formula
                     if (monthIndex == 0) { // First month
-                        month[lineItem.id] = lineItem.startValue
+                        month[lineItem.id] = lineItem.startValue != undefined ? lineItem.startValue : 0;
                     } else if (monthIndex == results.length - 1) { // Total
                         const priorMonth = results[monthIndex - 1];
                         month[lineItem.id] = priorMonth[lineItem.id];
@@ -105,12 +176,15 @@
                             console.log(formula);
                             month[lineItem.id] = eval(formula);
                         } else {
-                            month[lineItem.id] = lineItem.startValue;
+                            month[lineItem.id] = lineItem.startValue != undefined ? lineItem.startValue : 0;
                         }
                     }
                 }
             }
         };
+
+        // Rendering
+
         let table = "<table><tr>"
         for (let monthIndex = 0; monthIndex < results.length + 1; monthIndex++) {
             if (monthIndex == 0) {
@@ -127,9 +201,9 @@
             if (lineItem.startValue != undefined) {
                 table += "<tr><td>" + lineItem.name + "</td>";
             } else {
-                table += "<tr><td style='text-transform:uppercase;'><b>" + lineItem.name + "</b></td>";
+                table += "<tr><td><b>" + lineItem.name + "</b></td>";
             }
-            
+
             for (let monthIndex = 0; monthIndex < results.length; monthIndex++) {
                 table += "<td>";
                 const month = results[monthIndex];
@@ -157,4 +231,5 @@
         document.body.innerHTML = table;
     </script>
 </body>
+
 </html>
