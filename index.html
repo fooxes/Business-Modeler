@@ -1,0 +1,160 @@
+<html>
+<head>
+    <title>Business Modeler</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap" rel="stylesheet">
+    <style>
+        html {
+            font-family: "Roboto-Mono", monospace;
+        }
+        td,
+        th {
+            text-align: right;
+            padding: 10px;
+            background-color: white;
+        }
+        td:first-of-type,
+        th:first-of-type {
+            text-align: left;
+            position: sticky;
+            left:0;
+        }
+        th:first-of-type, th:last-of-type {
+            z-index: 1;
+        }
+        th {
+            position:sticky;
+            top:0;
+        }
+        td:last-child, th:last-child {
+            position: sticky;
+            right: 0;
+        }
+        
+        tr:nth-of-type(2n) td {
+            background-color: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <script>
+        
+        const model = [
+            {
+                id: "follower",
+                name: "Follower (LinkedIn)",
+                startValue: 100,
+                formula: "{priorMonth}+100"
+            },
+            {
+                id: "section",
+                name: "Traffic"
+            },
+            {
+                id: "traffic",
+                name: "Suchvolumen",
+                startValue: 17520
+            },
+            {
+                id: "seoCvrGrowth",
+                name: "CVR Growth",
+                startValue: 0.005,
+                type: "percentage"
+            },
+            {
+                id: "seoCvrMax",
+                name: "CVR Max",
+                startValue: 0.05,
+                type: "percentage"
+            },
+            {
+                id: "visits",
+                name: "Visits",
+                startValue: 0,
+                offset: 8,
+                formula: "{priorMonth}+({traffic}*{seoCvrMax}-{priorMonth})*{seoCvrGrowth}/{seoCvrMax}"
+            }
+        ]
+        const results = [{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}];
+        for (let lineNumber = 0; lineNumber < model.length; lineNumber++) {
+            const lineItem = model[lineNumber];
+            for (let monthIndex = 0; monthIndex < results.length; monthIndex++) {
+                const month = results[monthIndex];
+                if (lineItem.startValue != undefined) { // Sections do not have a startvalue
+                    if (monthIndex == 0) { // First month
+                        month[lineItem.id] = lineItem.startValue
+                    } else if (monthIndex == results.length - 1) { // Total
+                        const priorMonth = results[monthIndex - 1];
+                        month[lineItem.id] = priorMonth[lineItem.id];
+                    } else {
+                        const priorMonth = results[monthIndex - 1];
+                        const re = /{.*?}/g;
+                        let formula = lineItem.formula;
+                        if (formula && (monthIndex > lineItem.offset || lineItem.offset == undefined)) {
+                            const variables = formula.match(re);
+                            variables.forEach(variableId => {
+                                if (variableId == "{priorMonth}") {
+                                    formula = formula.replace("{priorMonth}", priorMonth[lineItem.id]);
+                                } else {
+                                    const variableIdClean = variableId.substring(1, variableId.length - 1);
+                                    const variable = month[variableIdClean];
+                                    formula = formula.replace(variableId, variable);
+                                }
+                            })
+                            console.log(formula);
+                            month[lineItem.id] = eval(formula);
+                        } else {
+                            month[lineItem.id] = lineItem.startValue;
+                        }
+                    }
+                }
+            }
+        };
+        let table = "<table><tr>"
+        for (let monthIndex = 0; monthIndex < results.length + 1; monthIndex++) {
+            if (monthIndex == 0) {
+                table += "<th>Month</th>"
+            } else if (monthIndex == results.length) {
+                table += "<th>Total</th>"
+            } else {
+                table += "<th>" + monthIndex + "</th>";
+            }
+        }
+        table += "</tr>"
+        for (let lineNumber = 0; lineNumber < model.length; lineNumber++) {
+            const lineItem = model[lineNumber];
+            if (lineItem.startValue != undefined) {
+                table += "<tr><td>" + lineItem.name + "</td>";
+            } else {
+                table += "<tr><td style='text-transform:uppercase;'><b>" + lineItem.name + "</b></td>";
+            }
+            
+            for (let monthIndex = 0; monthIndex < results.length; monthIndex++) {
+                table += "<td>";
+                const month = results[monthIndex];
+                const value = month[lineItem.id];
+                const priorMonth = results[monthIndex - 1];
+                if (priorMonth && priorMonth[lineItem.id] == value) {
+                    table += "<div style='color: lightgray'>";
+                }
+                if (value) {
+                    let valueString = Math.round(value).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+                    switch (lineItem.type) {
+                        case "percentage":
+                            valueString = (Math.round(value * 100 * 100) / 100) + "%";
+                    }
+                    table += valueString;
+                }
+                if (priorMonth && priorMonth[lineItem.id] == value) {
+                    table += "</div>";
+                }
+                table += "</td>";
+            }
+            table += "</tr>";
+        }
+        table += "</table>";
+        document.body.innerHTML = table;
+    </script>
+</body>
+</html>
